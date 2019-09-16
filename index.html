@@ -3,36 +3,13 @@
 
 <head>
     <title>Maze renderer</title>
-    <script>
-        window.addEventListener("load",
-        () => {
-            const canvas = document.getElementById("your-mighty-maze");
-            const ctx = canvas.getContext("2d");
-            const canvasWidth = canvas.width;
-            const canvasHeight = canvas.height;
-            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-            let imageData = ctx.getImageData(0, 0, canvasWidth, canvasHeight);
-            let pixels = imageData.data;
-
-            // DO THE MAGIC HERE
-            // for (let i = (canvasWidth / 2) - 50; i < canvasWidth / 2 + 50; i = i + 1) {
-            //     for (let j = (canvasHeight / 2) - 25; j < (canvasHeight / 2) + 25; j = j + 1) {
-            //         pixels[(j * canvasWidth + i) * 4] = 128;
-            //         pixels[(j * canvasWidth + i) * 4 + 1] = 0;
-            //         pixels[(j * canvasWidth + i) * 4 + 2] = 128;
-            //     }
-            // }
-            pixels[1000] = 128;
-            pixels[1] = 128;
-
-            ctx.putImageData(imageData, 0, 0);
-        });
-    </script>
+    <script src="dist/maze_drawer.js"></script>
+    <script>main("your-mighty-maze");</script>
 </head>
 
 <body>
     <div id="canvas-container">
-        <canvas id="your-mighty-maze" width="400" height="400" style="border: solid 0px red"></canvas>
+        <canvas id="your-mighty-maze" width="640" height="480" style="border: solid 1px red"></canvas>
     </div>
 </body>
 

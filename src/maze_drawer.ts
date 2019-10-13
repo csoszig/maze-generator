@@ -19,12 +19,15 @@ interface Coordinate {
     y: number;
 }
 
+type TileLayout = Array<Array<TileElement>>;
+
 interface TileData {
-    tileLayout: Array<Array<TileElement>>;
     walls: Array<WallType>;
     groupId: number;
     position: Coordinate;
 }
+
+type Maze = Array<Array<TileData>>;
 
 const main = (canvasId: string) => window.addEventListener(
     "load",
@@ -45,25 +48,18 @@ const main = (canvasId: string) => window.addEventListener(
         let imageData = ctx.getImageData(0, 0, canvasWidth, canvasHeight);
         let pixels = imageData.data;
 
-        const tileData = getTileData([WallType.N, WallType.E], 1);
-        for (let i = 0; i < TILE_SIZE; i += 1) {
-            for (let j = 0; j < TILE_SIZE; j += 1) {
-                const color = getTileTypeColor(tileData.tileLayout[j][i]);
-                const x = (canvasWidth - TILE_SIZE) / 2
-                pixels[(j * canvasWidth + i) * 4] = color[0];
-                pixels[(j * canvasWidth + i) * 4 + 1] = color[1];
-                pixels[(j * canvasWidth + i) * 4 + 2] = color[2];
-                pixels[(j * canvasWidth + i) * 4 + 3] = color[3];
+        const maze = createRandomMaze(10, 10);
+        for (let i = 0; i < 10; i++) {
+            for (let j = 0; j < 10; j++) {
+                pixels = drawTile(getTileLayout(maze[i][j].walls), {x: i, y: j}, pixels, canvasWidth);
             }
         }
-
         ctx.putImageData(imageData, 0, 0);
     }
 );
 
-
 // 0: empty 1: wall 2: floor
-const getTileData = (walls: Array<WallType>, groupId: number): TileData => {
+const getTileLayout = (walls: Array<WallType>): TileLayout => {
     let tileLayout = [...new Array(TILE_SIZE)];
     tileLayout = tileLayout.map((row) => {
         row = [...new Array(TILE_SIZE)];
@@ -96,12 +92,7 @@ const getTileData = (walls: Array<WallType>, groupId: number): TileData => {
         });
     }
 
-    return {
-        tileLayout,
-        walls,
-        groupId,
-        position: {x: 0, y: 0}
-    }
+    return tileLayout;
 }
 
 const getTileTypeColor = (tileType: TileElement) => {
@@ -115,4 +106,44 @@ const getTileTypeColor = (tileType: TileElement) => {
         default:
             return [0, 0, 0, 255];
     }
+}
+
+const drawTile = (tileLayout: TileLayout, position: Coordinate, pixels: Uint8ClampedArray, canvasWidth: number) =>  {
+    for (let i = 0; i < TILE_SIZE; i += 1) {
+        for (let j = 0; j < TILE_SIZE; j += 1) {
+            const color = getTileTypeColor(tileLayout[j][i]);
+            const x = position.x * TILE_SIZE + i;
+            const y = (position.y * TILE_SIZE + j) * canvasWidth;
+            pixels[(x + y) * 4] = color[0];
+            pixels[(x + y) * 4 + 1] = color[1];
+            pixels[(x + y) * 4 + 2] = color[2];
+            pixels[(x + y) * 4 + 3] = color[3];
+        }
+    }
+
+    return pixels;
+}
+
+const createRandomMaze = (width: number, height: number) => {
+    const rooms = [
+        [WallType.N, WallType.S],
+        [WallType.E, WallType.W],
+        [WallType.N, WallType.E],
+        [WallType.N, WallType.W],
+        [WallType.S, WallType.E],
+        [WallType.S, WallType.W],
+    ];
+    const maze: Maze = [];
+    for (let i = 0; i < width; i++) {
+        maze[i] = [];
+        for (let j = 0; j < width; j++) {
+            maze[i][j] = {
+                walls: rooms[Math.floor(Math.random() * 6)],
+                position: {x: i, y: j},
+                groupId: 1
+            }
+        }
+    }
+
+    return maze;
 }

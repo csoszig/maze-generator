@@ -46,15 +46,15 @@ const main = (canvasId: string) => window.addEventListener(
         const canvasHeight = canvas.height;
         ctx.clearRect(0,0,canvasWidth, canvasHeight);
         let imageData = ctx.getImageData(0, 0, canvasWidth, canvasHeight);
-        let pixels = imageData.data;
+        // let pixels = imageData.data;
 
-        const maze = createRandomMaze(10, 10);
-        for (let i = 0; i < 10; i++) {
-            for (let j = 0; j < 10; j++) {
-                pixels = drawTile(getTileLayout(maze[i][j].walls), {x: i, y: j}, pixels, canvasWidth);
-            }
-        }
-        ctx.putImageData(imageData, 0, 0);
+        const maze = createRandomMaze(10, 10, imageData, canvasWidth, ctx);
+        // for (let i = 0; i < 10; i++) {
+        //     for (let j = 0; j < 10; j++) {
+        //         pixels = drawTile(getTileLayout(maze[i][j].walls), {x: i, y: j}, pixels, canvasWidth);
+        //     }
+        // }
+        // ctx.putImageData(imageData, 0, 0);
     }
 );
 
@@ -120,30 +120,100 @@ const drawTile = (tileLayout: TileLayout, position: Coordinate, pixels: Uint8Cla
             pixels[(x + y) * 4 + 3] = color[3];
         }
     }
-
-    return pixels;
 }
 
-const createRandomMaze = (width: number, height: number) => {
-    const rooms = [
-        [WallType.N, WallType.S],
-        [WallType.E, WallType.W],
-        [WallType.N, WallType.E],
-        [WallType.N, WallType.W],
-        [WallType.S, WallType.E],
-        [WallType.S, WallType.W],
-    ];
+const sleep = async (sec: number) => {
+    return new Promise( resolve => setTimeout(resolve, sec * 1000) );
+}
+
+const createRandomMaze = async (width: number, height: number, imageData: ImageData, canvasWidth: number, ctx: CanvasRenderingContext2D) => {
     const maze: Maze = [];
-    for (let i = 0; i < width; i++) {
-        maze[i] = [];
-        for (let j = 0; j < width; j++) {
+    for (let j = 0; j < width; j++) {
+        for (let i = 0; i < height; i++) {
+            if (j === 0) {
+                maze[i] = [];
+            }
+
+            const validRooms = getValidRooms(
+                i > 0 ? maze[i - 1][j] : null,
+                j > 0 ? maze[i][j - 1] : null,
+                {
+                    walls: [WallType.EMPTY],
+                    position: {x: i, y: j},
+                    groupId: 1
+                },
+                {
+                    walls: [WallType.EMPTY],
+                    position: {x: i, y: j},
+                    groupId: 1
+                },
+            );
+
+            await sleep(0.1);
             maze[i][j] = {
-                walls: rooms[Math.floor(Math.random() * 6)],
+                walls: validRooms[Math.floor(Math.random() * validRooms.length)],
                 position: {x: i, y: j},
                 groupId: 1
             }
+            drawTile(getTileLayout(maze[i][j].walls), {x: i, y: j}, imageData.data, canvasWidth);
+            ctx.putImageData(imageData, 0, 0);
         }
     }
 
     return maze;
+}
+
+const getValidRooms = (left: TileData | null, up: TileData | null, right: TileData | null, down: TileData | null) => {
+    const walls = {
+        [WallType.N]: 0,
+        [WallType.E]: 0,
+        [WallType.S]: 0,
+        [WallType.W]: 0,
+    }
+
+    if (left == null || left.walls.indexOf(WallType.E) > -1) {
+        walls[WallType.W] = 1;
+    } else if (left.walls.indexOf(WallType.EMPTY) > -1) {
+        walls[WallType.W] = 2;
+    }
+
+    if (right == null || right.walls.indexOf(WallType.W) > -1) {
+        walls[WallType.E] = 1;
+    } else if (right.walls.indexOf(WallType.EMPTY) > -1) {
+        walls[WallType.E] = 2;
+    }
+
+    if (up == null || up.walls.indexOf(WallType.S) > -1) {
+        walls[WallType.N] = 1;
+    } else if (up.walls.indexOf(WallType.EMPTY) > -1) {
+        walls[WallType.N] = 2;
+    }
+
+    if (down == null || down.walls.indexOf(WallType.N) > -1) {
+        walls[WallType.S] = 1;
+    } else if (down.walls.indexOf(WallType.EMPTY) > -1) {
+        walls[WallType.S] = 2;
+    }
+
+    let validWalls = [];
+    if (walls[WallType.N] > 0 && walls[WallType.S] > 0 && walls[WallType.E] !== 1 && walls[WallType.W] !== 1) {
+        validWalls.push([WallType.N, WallType.S]);
+    }
+    if (walls[WallType.N] > 0 && walls[WallType.E] > 0 && walls[WallType.S] !== 1 && walls[WallType.W] !== 1) {
+        validWalls.push([WallType.N, WallType.E]);
+    }
+    if (walls[WallType.N] > 0 && walls[WallType.W] > 0 && walls[WallType.E] !== 1 && walls[WallType.S] !== 1) {
+        validWalls.push([WallType.N, WallType.W]);
+    }
+    if (walls[WallType.S] > 0 && walls[WallType.E] > 0 && walls[WallType.N] !== 1 && walls[WallType.W] !== 1) {
+        validWalls.push([WallType.S, WallType.E]);
+    }
+    if (walls[WallType.S] > 0 && walls[WallType.W] > 0 && walls[WallType.N] !== 1 && walls[WallType.E] !== 1) {
+        validWalls.push([WallType.S, WallType.W]);
+    }
+    if (walls[WallType.E] > 0 && walls[WallType.W] > 0 && walls[WallType.S] !== 1 && walls[WallType.N] !== 1) {
+        validWalls.push([WallType.E, WallType.W]);
+    }
+
+    return validWalls;
 }
